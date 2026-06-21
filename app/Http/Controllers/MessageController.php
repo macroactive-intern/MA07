@@ -1,10 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreMessageRequest;
+use App\Http\Resources\MessageResource;
 use App\Models\MessageThread;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class MessageController extends Controller
 {
@@ -17,6 +21,8 @@ class MessageController extends Controller
             'body'      => $request->validated('body'),
         ]);
 
-        return response()->json($message, 201);
+        Log::info('message.sent', ['message_id' => $message->id, 'thread_id' => $thread->id, 'sender_id' => $request->user()->id]);
+
+        return response()->json(new MessageResource($message), 201);
     }
 }

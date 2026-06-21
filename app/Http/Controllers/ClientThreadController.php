@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ThreadResource;
 use App\Models\MessageThread;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +21,6 @@ class ClientThreadController extends Controller
             ->with('coach:id,name')
             ->get();
 
-        return response()->json($threads);
+        return response()->json(ThreadResource::collection($threads));
     }
 }

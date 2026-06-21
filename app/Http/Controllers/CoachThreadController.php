@@ -1,11 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreThreadRequest;
+use App\Http\Resources\ThreadResource;
 use App\Models\MessageThread;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class CoachThreadController extends Controller
@@ -35,7 +40,7 @@ class CoachThreadController extends Controller
             'subject'      => $thread->subject,
             'client'       => ['name' => $thread->client->name],
             'last_message' => $thread->lastMessage ? [
-                'body'    => Str::limit($thread->lastMessage->body, 100, ''),
+                'body'    => Str::limit($thread->lastMessage->body, config('messaging.preview_length'), ''),
                 'sent_at' => $thread->lastMessage->created_at,
             ] : null,
             'unread_count' => $thread->unread_count,
@@ -46,20 +51,26 @@ class CoachThreadController extends Controller
     {
         $this->authorize('create', MessageThread::class);
 
-        $thread = MessageThread::create([
+        $thread = DB::transaction(fn () => MessageThread::create([
             'coach_id'  => $request->user()->id,
             'client_id' => $request->validated('client_id'),
             'subject'   => $request->validated('subject'),
-        ]);
+        ]));
 
-        return response()->json($thread, 201);
+        Log::info('thread.created', ['thread_id' => $thread->id, 'coach_id' => $request->user()->id]);
+
+        return response()->json(new ThreadResource($thread), 201);
     }
 
     public function destroy(Request $request, MessageThread $thread): JsonResponse
     {
         $this->authorize('archive', $thread);
 
-        $thread->update(['archived_at' => now()]);
+        DB::transaction(function () use ($thread) {
+            MessageThread::lockForUpdate()->find($thread->id)->update(['archived_at' => now()]);
+        });
+
+        Log::info('thread.archived', ['thread_id' => $thread->id, 'coach_id' => $request->user()->id]);
 
         return response()->json(['message' => 'Thread archived.']);
     }
