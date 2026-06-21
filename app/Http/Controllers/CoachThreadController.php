@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreThreadRequest;
-use App\Models\Message;
 use App\Models\MessageThread;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,22 +20,14 @@ class CoachThreadController extends Controller
             ->where('coach_id', $coach->id)
             ->whereNull('archived_at')
             ->with('client:id,name')
-            ->with('lastMessage:id,thread_id,body,created_at')
+            ->with(['lastMessage' => fn ($q) => $q->select('messages.id', 'messages.thread_id', 'messages.body', 'messages.created_at')])
             ->withCount([
                 'messages as unread_count' => function ($query) use ($coach) {
                     $query->whereNull('read_at')
                           ->where('sender_id', '!=', $coach->id);
                 },
             ])
-            ->addSelect([
-                '*',
-                'last_message_sent_at' => Message::query()
-                    ->select('created_at')
-                    ->whereColumn('thread_id', 'message_threads.id')
-                    ->latest('created_at')
-                    ->limit(1),
-            ])
-            ->orderByDesc('last_message_sent_at')
+            ->orderByRaw('(SELECT MAX(created_at) FROM messages WHERE messages.thread_id = message_threads.id) DESC')
             ->get();
 
         return response()->json($threads->map(fn ($thread) => [
