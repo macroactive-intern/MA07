@@ -46,6 +46,7 @@ The one edge case — `abort_unless($message->thread_id === $thread->id, 404)` i
 |---|---|---|
 | Thread created | `CoachThreadController@store` | `thread.created` with `thread_id`, `coach_id` |
 | Thread archived | `CoachThreadController@destroy` | `thread.archived` with `thread_id`, `coach_id` |
+| Thread restored | `CoachThreadController@restore` | `thread.restored` with `thread_id`, `coach_id` |
 | Message sent | `MessageController@store` | `message.sent` with `message_id`, `thread_id`, `sender_id` |
 | Message marked read | `MessageReadController@update` | `message.read` with `message_id`, `thread_id`, `user_id` |
 
@@ -101,6 +102,7 @@ Validation now runs 2 DB queries (one user lookup, one thread existence check) i
 |---|---|---|
 | Thread created | `CoachThreadController@store` | Wrapped in `DB::transaction()` |
 | Thread archived | `CoachThreadController@destroy` | `DB::transaction()` + `lockForUpdate()` on the thread fetch |
+| Thread restored | `CoachThreadController@restore` | `DB::transaction()` + `lockForUpdate()` on the thread fetch |
 | Message marked read | `MessageReadController@update` | `DB::transaction()` + `lockForUpdate()` on the message fetch |
 
 Concurrent archive or mark-read requests now serialize correctly. The TOCTOU gap on thread creation is closed — a race condition that slips past validation will produce a clean `QueryException` caught by the DB unique constraint rather than an unhandled 500.
@@ -110,7 +112,7 @@ Concurrent archive or mark-read requests now serialize correctly. The TOCTOU gap
 ## 7. Security — PASS
 
 **Passes:**
-- All 7 API endpoints are behind `auth:sanctum` ✓
+- All 8 API endpoints are behind `auth:sanctum` ✓
 - `MessageThreadPolicy` is applied on every state-mutating endpoint ✓
 - No admin endpoints, so `EnsureUserIsAdmin` is not applicable ✓
 - `.env.example` ships with `APP_DEBUG=false` ✓
@@ -134,6 +136,8 @@ Concurrent archive or mark-read requests now serialize correctly. The TOCTOU gap
 |---|---|
 | `CoachThreadController@index` | Manually mapped array (enriched with `client.name`, `last_message`, `unread_count`) |
 | `CoachThreadController@store` | `ThreadResource` |
+| `CoachThreadController@destroy` | Plain string message array |
+| `CoachThreadController@restore` | Plain string message array |
 | `ClientThreadController@index` | `ThreadResource::collection()` |
 | `ThreadController@show` | Manually mapped array (with nested `messages`) |
 | `MessageController@store` | `MessageResource` |
@@ -143,7 +147,7 @@ Concurrent archive or mark-read requests now serialize correctly. The TOCTOU gap
 
 ## 9. Tests Pass — PASS
 
-`php vendor/bin/pest` exits with code 0. All 18 tests pass with 35 assertions. No tests are skipped or marked pending.
+`php vendor/bin/pest` exits with code 0. All 21 tests pass with 39 assertions. No tests are skipped or marked pending.
 
 ---
 
