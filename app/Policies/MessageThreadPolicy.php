@@ -33,6 +33,12 @@ class MessageThreadPolicy
         return $user->role === 'coach' && $thread->coach_id === $user->id;
     }
 
+    // PATCH /api/coach/threads/{thread}/restore
+    public function restore(User $user, MessageThread $thread): bool
+    {
+        return $user->role === 'coach' && $thread->coach_id === $user->id;
+    }
+
     // GET /api/threads/{thread}
     // POST /api/threads/{thread}/messages
     // PATCH /api/threads/{thread}/messages/{message}/read

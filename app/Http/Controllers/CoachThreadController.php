@@ -74,4 +74,17 @@ class CoachThreadController extends Controller
 
         return response()->json(['message' => 'Thread archived.']);
     }
+
+    public function restore(Request $request, MessageThread $thread): JsonResponse
+    {
+        $this->authorize('restore', $thread);
+
+        DB::transaction(function () use ($thread) {
+            MessageThread::lockForUpdate()->find($thread->id)->update(['archived_at' => null]);
+        });
+
+        Log::info('thread.restored', ['thread_id' => $thread->id, 'coach_id' => $request->user()->id]);
+
+        return response()->json(['message' => 'Thread restored.']);
+    }
 }

@@ -11,6 +11,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/coach/threads', [CoachThreadController::class, 'index']);
     Route::post('/coach/threads', [CoachThreadController::class, 'store']);
     Route::delete('/coach/threads/{thread}', [CoachThreadController::class, 'destroy']);
+    Route::patch('/coach/threads/{thread}/restore', [CoachThreadController::class, 'restore']);
 
     Route::get('/client/threads', [ClientThreadController::class, 'index']);
 
